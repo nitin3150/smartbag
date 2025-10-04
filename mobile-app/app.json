@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "smartbag",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon1.png",
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -16,8 +16,8 @@
       "**/*"
     ],
     "extra": {
-      "EXPO_PUBLIC_API_URL_dev": "http://10.0.0.88:8000/api/",
-      "EXPO_PUBLIC_API_URL": "https://smartbag-backend-oqlt.onrender.com/api",
+      "EXPO_PUBLIC_API_URL": "http://10.0.0.88:8000/api/",
+      "EXPO_PUBLIC_API_URL_dev": "https://smartbag-backend-oqlt.onrender.com/api",
       "EXPO_PUBLIC_OLA_KRUTRIM_API_KEY": "dzfpTC3yjmbi4eQLsDzBwBdGyYYdZXN80BFR73kQ",
       "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "com.googleusercontent.apps.1029983278193-mgl5t7mtqajk2a3vocs6qchbir317o9q",
       "eas": {
@@ -28,7 +28,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ios.smartbag",
-      "icon": "./assets/icon.png",
+      "icon": "./assets/icon1.png",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to location to help you select your delivery address.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to location to help you select your delivery address.",
@@ -50,9 +50,9 @@
     },
 
     "android": {
-      "icon": "./assets/icon.png",
+      "icon": "./assets/icon1.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon1.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
