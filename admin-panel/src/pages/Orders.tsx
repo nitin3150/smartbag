@@ -1046,7 +1046,7 @@ export default function Orders() {
         </CardContent>
       </Card>
 
-      {/* Order Details Drawer - FIX 3: This should now work properly */}
+      {/* Order Details Drawer */}
       <Sheet open={showOrderDrawer} onOpenChange={setShowOrderDrawer}>
         <SheetContent className="w-[800px] sm:w-[1000px] flex flex-col">
           <SheetHeader>
@@ -1309,7 +1309,7 @@ export default function Orders() {
                   <CardContent>
                     <div className="space-y-4">
                       <p><strong>Status:</strong> <StatusBadge status={selectedOrder.status || 'pending'} /></p>
-                      <p><strong>Delivery Partner:</strong> {selectedOrder.deliveryPartner || "Not assigned"}</p>
+                      <p><strong>Delivery Partner:</strong> {selectedOrder.delivery_partner_name || "Not assigned"}</p>
                       
                       <div className="space-y-2">
                         <Label htmlFor="status-notes">Notes (optional)</Label>

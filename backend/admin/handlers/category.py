@@ -5,6 +5,9 @@ from datetime import datetime
 from admin.config.cloudinary_config import CloudinaryManager
 from bson import ObjectId
 from admin.connection_manager import manager
+from admin.utils.id_generator import get_id_generator
+
+id_generator = get_id_generator()
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +61,10 @@ async def create_categories(websocket: WebSocket, data: dict, user_info: dict, d
         # Extract image data for upload
         image_data = data.get("image", "")
 
+        custom_id = await id_generator.generate_category_id(data["name"])
         # Create category data without image first
         category_data = {
+            "id": custom_id,
             "name": data["name"],
             "description": data.get("description", ""),
             "image": "",  # Will be updated after Cloudinary upload
@@ -176,7 +181,7 @@ async def update_category(websocket: WebSocket, data: dict, user_info: dict, db)
             if user_email == "unknown_user":
                 logger.warning(f"No email found in user_info. Available keys: {list(user_info.keys())}")
 
-        category_id = data.get("_id") or data.get("id")
+        category_id = data.get("_id")
 
         if not category_id:
             await websocket.send_json({
@@ -334,7 +339,7 @@ async def delete_category(websocket: WebSocket, data: dict, user_info: dict, db)
                 "unknown_user"
             )
         
-        category_id = data.get("_id") or data.get("id")
+        category_id = data.get("_id")
         
         if not category_id:
             await websocket.send_json({

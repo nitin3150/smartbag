@@ -64,17 +64,17 @@ export default function Products() {
   });
 
   // Debug: Log products data when it changes
-  useEffect(() => {
-    console.log('=== PRODUCTS DATA DEBUG ===');
-    console.log('Total products:', products.length);
-    if (products.length > 0) {
-      console.log('First product structure:', products[0]);
-      console.log('First product images:', products[0].images);
-      console.log('First product image type:', typeof products[0].images);
-      console.log('First product image array?', Array.isArray(products[0].images));
-    }
-    console.log('=== END PRODUCTS DEBUG ===');
-  }, [products]);
+  // useEffect(() => {
+  //   console.log('=== PRODUCTS DATA DEBUG ===');
+  //   console.log('Total products:', products.length);
+  //   if (products.length > 0) {
+  //     console.log('First product structure:', products[0]);
+  //     console.log('First product images:', products[0].images);
+  //     console.log('First product image type:', typeof products[0].images);
+  //     console.log('First product image array?', Array.isArray(products[0].images));
+  //   }
+  //   console.log('=== END PRODUCTS DEBUG ===');
+  // }, [products]);
 
   // Request initial data and set up real-time handlers
   useEffect(() => {
@@ -85,14 +85,14 @@ export default function Products() {
     });
 
     const handleProductsData = (data) => {
-      console.log('Received products data:', data);
-      console.log('Products count:', data.products?.length || 0);
+      // console.log('Received products data:', data);
+      // console.log('Products count:', data.products?.length || 0);
       
       // Debug first product images
-      if (data.products && data.products.length > 0) {
-        console.log('First product from server:', data.products[0]);
-        console.log('First product images from server:', data.products[0].images);
-      }
+      // if (data.products && data.products.length > 0) {
+      //   // console.log('First product from server:', data.products[0]);
+      //   console.log('First product images from server:', data.categories[0].id);
+      // }
       
       setProducts(data.products || []);
       setCategories(data.categories || []);
@@ -162,9 +162,9 @@ export default function Products() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Submitting product form:', formData);
-    console.log('Has new images:', hasNewImages);
-    console.log('Number of images:', formData.images.length);
+    // console.log('Submitting product form:', formData);
+    // console.log('Has new images:', hasNewImages);
+    // console.log('Number of images:', formData.images.length);
     
     try {
       const productData = {
@@ -189,7 +189,7 @@ export default function Products() {
       if (editingProduct) {
         wsService.send({
           type: 'update_product',
-          data: { _id: editingProduct._id || editingProduct.id, ...productData }
+          data: { id: editingProduct.id, ...productData }
         });
         toast({
           title: "Updating Product",
@@ -222,11 +222,17 @@ export default function Products() {
 
   const handleEdit = (product: any) => {
     console.log('=== EDITING PRODUCT ===');
-    console.log('Product data:', product);
-    console.log('Product images:', product.images);
-    console.log('Images type:', typeof product.images);
-    console.log('Is images array?', Array.isArray(product.images));
-    console.log('=== END EDIT DEBUG ===');
+    console.log('Product category from DB:', product.category);
+    console.log('Product brand from DB:', product.brand);
+    
+    // Find the category/brand objects to get their custom IDs
+    const categoryObj = categories.find(c => c._id === product.category);
+    const brandObj = brands.find(b => b._id === product.brand);
+    
+    console.log('Found category object:', categoryObj);
+    console.log('Found brand object:', brandObj);
+    console.log('Will use category ID:', categoryObj?.id);
+    console.log('Will use brand ID:', brandObj?.id);
     
     try {
       setEditingProduct(product);
@@ -244,7 +250,7 @@ export default function Products() {
       
       // Show existing images as previews
       const existingImages = getImageUrls(product.images);
-      console.log('Existing image URLs:', existingImages);
+      // console.log('Existing image URLs:', existingImages);
       setImagePreviews(existingImages);
       setHasNewImages(false);
       setShowAddModal(true);
@@ -463,7 +469,7 @@ export default function Products() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price ($)</Label>
+                  <Label htmlFor="price">Price (₹)</Label>
                   <Input
                     id="price"
                     type="number"
@@ -497,7 +503,7 @@ export default function Products() {
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((cat) => (
-                        <SelectItem key={cat._id || cat.id} value={cat._id || cat.id}>
+                        <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
                         </SelectItem>
                       ))}
@@ -515,7 +521,7 @@ export default function Products() {
                     </SelectTrigger>
                     <SelectContent>
                       {brands.map((brand) => (
-                        <SelectItem key={brand._id || brand.id} value={brand._id || brand.id}>
+                        <SelectItem key={brand.id} value={brand.id}>
                           {brand.name}
                         </SelectItem>
                       ))}
@@ -709,7 +715,7 @@ export default function Products() {
                 });
                 
                 return (
-                  <TableRow key={product._id || product.id}>
+                  <TableRow key={product.id}>
                     <TableCell>
                       <div className="flex items-center space-x-1">
                         {/* Primary image */}
@@ -748,7 +754,7 @@ export default function Products() {
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>${product.price}</TableCell>
+                    <TableCell>₹{product.price}</TableCell>
                     <TableCell>{product.stock}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{product.category}</Badge>
@@ -783,7 +789,7 @@ export default function Products() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDelete(product._id || product.id)}
+                          onClick={() => handleDelete(product.id)}
                           disabled={isLoading}
                         >
                           <Trash2 className="h-4 w-4" />

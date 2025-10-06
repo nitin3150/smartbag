@@ -1,4 +1,5 @@
 import asyncio
+from webbrowser import get
 from fastapi import WebSocket
 from admin.utils.serialize import serialize_document
 import logging
@@ -6,6 +7,9 @@ from admin.connection_manager import manager
 from admin.config.cloudinary_config import CloudinaryManager
 from bson import ObjectId
 from datetime import datetime
+from admin.utils.id_generator import get_id_generator
+
+id_generator = get_id_generator()
 
 logger = logging.getLogger(__name__)
 
@@ -69,14 +73,18 @@ async def create_product(websocket: WebSocket, data: dict, user_info: dict, db):
         # Extract images data for upload
         images_data = data.get("images", [])
         logger.info(f"Creating product with {len(images_data)} images")
-        
+        # print(data)
+        category = await db.find_one("categories", {"_id": ObjectId(data["category"])})
+
+        custom_id = await id_generator.generate_product_id(category['name'])
         # Create product data without images first
         product_data = {
+            "id": custom_id,
             "name": data["name"],
             "description": data["description"],
             "price": float(data["price"]),
-            "category": ObjectId(data["category"]) if data["category"] else None,
-            "brand": ObjectId(data["brand"]) if data["brand"] else None,
+            "category": category['id'],
+            "brand": data["brand"],
             "stock": int(data["stock"]),
             "keywords": validate_and_clean_keywords(data.get("keywords", [])),
             "tags": data.get("tags", []),
@@ -206,8 +214,8 @@ async def update_product(websocket: WebSocket, data: dict, user_info: dict, db):
                 user_info.get("username") or 
                 "unknown_user"
             )
-
-        product_id = data.get("_id") or data.get("id")
+        print(data)
+        product_id = data.get("id")
         if not product_id:
             await websocket.send_json({
                 "type": "error",
@@ -216,7 +224,7 @@ async def update_product(websocket: WebSocket, data: dict, user_info: dict, db):
             return
         
         # Get current product for image management
-        current_product = await db.find_one("products", {"_id": ObjectId(product_id)})
+        current_product = await db.find_one("products", {"id": product_id})
         if not current_product:
             await websocket.send_json({
                 "type": "error",
@@ -231,10 +239,6 @@ async def update_product(websocket: WebSocket, data: dict, user_info: dict, db):
         update_data = {k: v for k, v in data.items() if k not in ["_id", "id", "images"]}
         
         # Convert ObjectIds and validate data
-        if "category" in update_data and update_data["category"]:
-            update_data["category"] = ObjectId(update_data["category"])
-        if "brand" in update_data and update_data["brand"]:
-            update_data["brand"] = ObjectId(update_data["brand"])
         if "price" in update_data:
             update_data["price"] = float(update_data["price"])
         if "stock" in update_data:
@@ -330,13 +334,13 @@ async def update_product(websocket: WebSocket, data: dict, user_info: dict, db):
         # Update product
         result = await db.update_one(
             "products",
-            {"_id": ObjectId(product_id)},
+            {"id": product_id},
             {"$set": update_data}
         )
         
         if result:
             # Get updated product
-            updated_product = await db.find_one("products", {"_id": ObjectId(product_id)})
+            updated_product = await db.find_one("products", {"id": product_id})
             updated_product = serialize_document(updated_product)
 
             # Send success response
@@ -388,7 +392,7 @@ async def delete_product(websocket: WebSocket, data: dict, user_info: dict, db):
             return
         
         # Get product before deletion for images cleanup
-        product = await db.find_one("products", {"_id": ObjectId(product_id)})
+        product = await db.find_one("products", {"id": product_id})
         
         # Delete all images from Cloudinary if they exist
         if product and product.get("images"):
@@ -414,7 +418,7 @@ async def delete_product(websocket: WebSocket, data: dict, user_info: dict, db):
             logger.info(f"Deleted {deleted_count} images from Cloudinary for product {product_id}")
 
         # Delete product from database
-        result = await db.delete_one("products", {"_id": ObjectId(product_id)})
+        result = await db.delete_one("products", {"id": product_id})
         
         if result:
             # Send success response

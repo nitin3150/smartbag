@@ -5,6 +5,9 @@ from datetime import datetime
 from bson import ObjectId
 from admin.connection_manager import manager
 from admin.config.cloudinary_config import CloudinaryManager
+from admin.utils.id_generator import get_id_generator
+
+id_generator = get_id_generator()
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +61,10 @@ async def create_brand(websocket: WebSocket, data: dict, user_info: dict, db):
         # Extract logo data for upload
         logo_data = data.get("logo", "")
 
+        custom_id = await id_generator.generate_brand_id(data["name"])
         # Create brand data without logo first
         brand_data = {
+            "id": custom_id,
             "name": data["name"],
             "description": data.get("description", ""),
             "logo": "",  # Will be updated after Cloudinary upload
@@ -174,7 +179,7 @@ async def update_brand(websocket: WebSocket, data: dict, user_info: dict, db):
             if user_email == "unknown_user":
                 logger.warning(f"No email found in user_info. Available keys: {list(user_info.keys())}")
 
-        brand_id = data.get("_id") or data.get("id")
+        brand_id = data.get("_id")
 
         if not brand_id:
             await websocket.send_json({
@@ -321,7 +326,7 @@ async def delete_brand(websocket: WebSocket, data: dict, user_info: dict, db):
                 "unknown_user"
             )
 
-        brand_id = data.get("_id") or data.get("id")
+        brand_id = data.get("_id")
 
         if not brand_id:
             await websocket.send_json({

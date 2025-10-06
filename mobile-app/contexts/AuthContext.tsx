@@ -171,35 +171,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // const loadStoredAuth = async (): Promise<void> => {
-  //   try {
-  //     console.log('Loading stored auth from secure storage...');
-      
-  //     const authData = await secureStorage.getAuthData();
-      
-  //     if (authData.accessToken && authData.userData) {
-  //       console.log('Found stored auth, setting user and token');
-  //       setToken(authData.accessToken);
-  //       setUser(authData.userData);
-  //       setRefreshTokenValue(authData.refreshToken);
-        
-  //       // Validate token
-  //       const isValid = await validateToken(authData.accessToken);
-  //       if (!isValid) {
-  //         console.log('Stored token is invalid, clearing auth');
-  //         await clearAuth();
-  //       }
-  //     } else {
-  //       console.log('No stored auth found');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error loading stored auth:', error);
-  //     await clearAuth();
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const loadStoredAuth = async (): Promise<void> => {
     try {
       console.log('=== Loading stored auth from secure storage ===');

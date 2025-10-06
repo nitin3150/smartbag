@@ -915,7 +915,9 @@ export default function DiscountCoupons() {
               </TableHeader>
               <TableBody>
                 {filteredCoupons.map((coupon) => {
-                  const isExpired = new Date(coupon.valid_until) <= new Date();
+                  
+                  const isExpired = coupon.valid_until.split('T')[0] < new Date().toISOString().split('T')[0];
+                  // const isExpired = new Date(coupon.valid_until) <= new Date();
                   const usagePercentage = coupon.usage_limit ? 
                     (coupon.usage_count / coupon.usage_limit) * 100 : 0;
                   
@@ -988,9 +990,19 @@ export default function DiscountCoupons() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <div className={isExpired ? 'text-red-600' : ''}>
                           {format(new Date(coupon.valid_until), "MMM dd, yyyy")}
+                        </div>
+                      </TableCell> */}
+                      <TableCell>
+                        <div className={isExpired ? 'text-red-600' : ''}>
+                          {new Date(coupon.valid_until + 'T00:00:00Z').toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric', 
+                            year: 'numeric',
+                            timeZone: 'UTC'
+                          })}
                         </div>
                       </TableCell>
                       <TableCell>
