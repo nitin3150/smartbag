@@ -280,6 +280,7 @@ export default function CheckoutScreen() {
 
       const data = await response.json();
 
+      // console.log(data)
       if (response.ok && data.valid) {
         setAppliedPromo(data.promocode);
         calculatePromoDiscount(data.promocode);
@@ -437,7 +438,7 @@ export default function CheckoutScreen() {
     try {
       const orderData = {
         items: cartItems.map(item => ({
-          product: item.product._id,
+          product: item.product.id,
           quantity: item.quantity,
           price: item.product.price,
         })),

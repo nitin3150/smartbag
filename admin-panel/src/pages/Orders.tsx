@@ -65,6 +65,7 @@ import { format, parseISO, subDays, startOfDay, endOfDay } from "date-fns";
 
 interface DeliveryPartner {
   _id: string;
+  id: string;
   name: string;
   email: string;
   phone?: string;
@@ -141,15 +142,16 @@ export default function Orders() {
 
   const statusOptions = [
     { value: "all", label: "All Orders" },
-    { value: "pending", label: "Pending" },
-    { value: "confirmed", label: "Confirmed" },
+    // { value: "pending", label: "Pending" },
+    // { value: "confirmed", label: "Confirmed" },
     { value: "preparing", label: "Preparing" },
-    { value: "prepared", label: "Prepared" },
+    // { value: "prepared", label: "Prepared" },
     { value: "accepted", label: "Accepted" },
     { value: "assigned", label: "Assigned" },
     { value: "out_for_delivery", label: "Out for Delivery" },
     { value: "delivered", label: "Delivered" },
     { value: "cancelled", label: "Cancelled" },
+    { value: "Returned", label: "Returned" },
   ];
 
   const dateRangeOptions = [
@@ -610,32 +612,32 @@ export default function Orders() {
     
     try {
       switch (order.status) {
-        case 'pending':
-          actions.push(
-            <Button
-              key="confirm"
-              size="sm"
-              onClick={() => handleStatusChange(order.id, 'confirmed')}
-              disabled={isUpdating}
-            >
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Confirm
-            </Button>
-          );
-          break;
-        case 'confirmed':
-          actions.push(
-            <Button
-              key="prepare"
-              size="sm"
-              onClick={() => handleStatusChange(order.id, 'preparing')}
-              disabled={isUpdating}
-            >
-              <Clock className="h-4 w-4 mr-1" />
-              Start Preparing
-            </Button>
-          );
-          break;
+      //   case 'pending':
+      //     actions.push(
+      //       <Button
+      //         key="confirm"
+      //         size="sm"
+      //         onClick={() => handleStatusChange(order.id, 'confirmed')}
+      //         disabled={isUpdating}
+      //       >
+      //         <CheckCircle className="h-4 w-4 mr-1" />
+      //         Confirm
+      //       </Button>
+      //     );
+      //     break;
+      //   case 'confirmed':
+      //     actions.push(
+      //       <Button
+      //         key="prepare"
+      //         size="sm"
+      //         onClick={() => handleStatusChange(order.id, 'preparing')}
+      //         disabled={isUpdating}
+      //       >
+      //         <Clock className="h-4 w-4 mr-1" />
+      //         Start Preparing
+      //       </Button>
+      //     );
+      //     break;
         case 'preparing':
           actions.push(
             <Button

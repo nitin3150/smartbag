@@ -2,7 +2,6 @@ from typing import Dict
 from bson import ObjectId
 from fastapi import WebSocket
 import logging
-
 from admin.utils.serialize import serialize_document
 
 logger = logging.getLogger(__name__)

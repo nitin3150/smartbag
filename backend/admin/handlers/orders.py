@@ -2,7 +2,6 @@ from fastapi import WebSocket
 import logging
 from datetime import datetime
 from admin.utils.serialize import serialize_document
-# from admin.connection_manager import manager
 from bson import ObjectId
 from typing import Dict, Any
 import math
@@ -71,14 +70,14 @@ async def send_orders(websocket: WebSocket, filters: dict, db):
         # Fetch users in batch
         users_dict = {}
         if user_ids:
-            users = await db.find_many("users", {"_id": {"$in": user_ids}})
-            users_dict = {str(user["_id"]): user for user in users}
+            users = await db.find_many("users", {"id": {"$in": user_ids}})
+            users_dict = {str(user["id"]): user for user in users}
         
         # Fetch delivery partners in batch
         delivery_partners_dict = {}
         if delivery_partner_ids:
-            partners = await db.find_many("users", {"_id": {"$in": delivery_partner_ids}})
-            delivery_partners_dict = {str(partner["_id"]): partner for partner in partners}
+            partners = await db.find_many("users", {"id": {"$in": delivery_partner_ids}})
+            delivery_partners_dict = {str(partner["id"]): partner for partner in partners}
         
         # Batch fetch products for order items
         product_ids = []
@@ -86,12 +85,12 @@ async def send_orders(websocket: WebSocket, filters: dict, db):
             if order.get("items"):
                 for item in order["items"]:
                     if item.get("product"):
-                        product_ids.append(ObjectId(item["product"]))
+                        product_ids.append(item["product"])
         
         products_dict = {}
         if product_ids:
-            products = await db.find_many("products", {"_id": {"$in": product_ids}})
-            products_dict = {str(product["_id"]): product for product in products}
+            products = await db.find_many("products", {"id": {"$in": product_ids}})
+            products_dict = {str(product["id"]): product for product in products}
         
         # Process each order
         for order in orders:
@@ -116,7 +115,7 @@ async def send_orders(websocket: WebSocket, filters: dict, db):
                 serialized_order = serialize_document(order)
                 
                 # Add frontend-friendly field mappings
-                serialized_order["id"] = serialized_order["_id"]
+                # serialized_order["id"] = serialized_order["_id"]
                 serialized_order["total"] = serialized_order.get("total_amount", 0)
                 serialized_order["status"] = serialized_order.get("order_status", "pending")
                 
@@ -133,7 +132,7 @@ async def send_orders(websocket: WebSocket, filters: dict, db):
                 serialized_orders.append(serialized_order)
                 
             except Exception as serialize_error:
-                logger.error(f"Error serializing order {order.get('_id')}: {serialize_error}")
+                logger.error(f"Error serializing order {order.get('id')}: {serialize_error}")
                 continue
         
         logger.info(f"Sending {len(serialized_orders)} serialized orders with pagination")
@@ -242,7 +241,7 @@ async def update_order_status(websocket: WebSocket, data: dict, user_info: dict,
         order_id = data.get("order_id") or data.get("orderId") 
         new_status = data.get("status")
         delivery_partner = data.get("delivery_partner")
-        notes = data.get("notes", "")
+        # notes = data.get("notes", "")
         
         if not order_id or not new_status:
             await websocket.send_json({
@@ -258,12 +257,12 @@ async def update_order_status(websocket: WebSocket, data: dict, user_info: dict,
         }
         
         if delivery_partner:
-            update_data["delivery_partner"] = ObjectId(delivery_partner)
+            update_data["delivery_partner"] = delivery_partner
             
         # Update order
         result = await db.update_one(
             "orders",
-            {"_id": ObjectId(order_id)}, 
+            {"id": order_id}, 
             {"$set": update_data}
         )
         
@@ -291,7 +290,7 @@ async def get_delivery_requests_for_order(websocket: WebSocket, data: dict, db):
     """Get delivery partners who requested a specific order"""
     try:
         order_id = ObjectId(data.get("order_id"))
-        order = await db.find_one("orders", {"_id": order_id})
+        order = await db.find_one("orders", {"id": order_id})
         
         if not order:
             await websocket.send_json({
@@ -305,7 +304,7 @@ async def get_delivery_requests_for_order(websocket: WebSocket, data: dict, db):
 
         # Batch fetch partner details
         if partners:
-            partner_docs = await db.find_many("users", {"_id": {"$in": partners}})
+            partner_docs = await db.find_many("users", {"id": {"$in": partners}})
             partner_list = [
                 {
                     "id": str(partner["_id"]),
@@ -377,36 +376,6 @@ async def assign_delivery_partner(websocket: WebSocket, data: dict, db):
             "type": "error",
             "message": "Failed to assign delivery partner"
         })
-
-# Performance optimization functions
-# async def create_orders_indexes(db):
-#     """Create optimized indexes for orders collection"""
-#     try:
-#         # Compound index for common queries
-#         await db.create_index("orders", [
-#             ("order_status", 1),
-#             ("created_at", -1)
-#         ])
-        
-#         # Index for date range queries
-#         await db.create_index("orders", [("created_at", -1)])
-        
-#         # Index for amount queries
-#         await db.create_index("orders", [("total_amount", 1)])
-        
-#         # Index for delivery partner queries
-#         await db.create_index("orders", [("delivery_partner", 1)])
-        
-#         # Index for user queries (for customer name search)
-#         await db.create_index("orders", [("user", 1)])
-        
-#         # Text index for order_id search
-#         await db.create_index("orders", [("order_id", 1)])
-        
-#         logger.info("Orders indexes created successfully")
-        
-#     except Exception as e:
-#         logger.error(f"Error creating orders indexes: {e}")
 
 async def get_orders_for_download(websocket: WebSocket, filters: dict, db):
     """Get orders for CSV download with specified filters"""

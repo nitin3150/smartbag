@@ -91,6 +91,7 @@ export default function OrdersScreen() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log(data)
         const ordersArray = data.orders || [];
         setOrders(ordersArray);
       } else {
@@ -220,9 +221,9 @@ export default function OrdersScreen() {
   };
 
   const renderOrderCard = ({ item }: { item: Order }) => {
-    const orderId = item._id || item.id || 'N/A';
+    const orderId = item.id || 'N/A';
     const itemCount = item.items?.length || 0;
-    
+    console.log(orderId)
     return (
       <TouchableOpacity 
         style={styles.orderCard}

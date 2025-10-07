@@ -35,25 +35,34 @@ interface ProductImage {
 
 interface Product {
   _id: string;
+  id: string;
   name: string;
   description: string;
   price: number;
   images: (string | ProductImage)[];
-  category: { name: string; _id: string };
-  brand: { name: string };
+  category: { 
+    _id: string;
+    id: string;
+    name: string;
+  };
+  brand: { 
+    _id: string;
+    id: string;
+    name: string;
+  };
   stock: number;
   status: string;
 }
 
 interface Category {
   _id: string;
+  id: string;
   name: string;
   icon?: string;
   image?: string;
   status: string;
 }
 
-// Interface for cart item quantities (local state)
 interface CartQuantities {
   [productId: string]: number;
 }
@@ -93,7 +102,7 @@ const AnimatedLogo = () => {
       ]}
     >
       <Image
-        source={require('../../assets/icon.png')} // Replace with your logo path
+        source={require('../../assets/icon.png')}
         style={styles.loadingLogo}
         resizeMode="contain"
       />
@@ -114,26 +123,21 @@ const HomeScreen = () => {
   const [cartCount, setCartCount] = useState(0);
   const [showCartNotification, setShowCartNotification] = useState(false);
   const [userAddress, setUserAddress] = useState<string>('Add Address');
-  // const [showRequestModal, setShowRequestModal] = useState(false);
   
-  // New state for cart quantities and loading states
   const [cartQuantities, setCartQuantities] = useState<CartQuantities>({});
   const [addingToCart, setAddingToCart] = useState<{[key: string]: boolean}>({});
   
-  // Add refs to prevent infinite loops
   const initialDataFetched = useRef(false);
   const lastFetchTime = useRef(0);
   const isFetching = useRef(false);
   const requestFormRef = useRef<RequestProductRef>(null);
-  // Memoized fetch functions to prevent recreation on every render
+
   const fetchData = useCallback(async () => {
-    // Prevent multiple simultaneous fetches
     if (isFetching.current) {
       console.log('Fetch already in progress, skipping...');
       return;
     }
     
-    // Prevent too frequent fetches (minimum 2 seconds between fetches)
     const now = Date.now();
     if (now - lastFetchTime.current < 2000) {
       console.log('Too soon since last fetch, skipping...');
@@ -145,7 +149,7 @@ const HomeScreen = () => {
       lastFetchTime.current = now;
       setLoading(true);
       
-      console.log('Fetching initial data...');
+      console.log('🔄 Fetching initial data...');
       const timestamp = Date.now();
       
       const [productsRes, categoriesRes] = await Promise.all([
@@ -160,7 +164,6 @@ const HomeScreen = () => {
       const productsData = await productsRes.json();
       const categoriesData = await categoriesRes.json();
       
-      // Extract products from response
       let productsArray: Product[] = [];
       if (productsData.products && Array.isArray(productsData.products)) {
         productsArray = productsData.products;
@@ -168,7 +171,6 @@ const HomeScreen = () => {
         productsArray = productsData;
       }
       
-      // Extract categories from response
       let categoriesArray: Category[] = [];
       if (categoriesData.categories && Array.isArray(categoriesData.categories)) {
         categoriesArray = categoriesData.categories;
@@ -176,7 +178,6 @@ const HomeScreen = () => {
         categoriesArray = categoriesData;
       }
       
-      // Filter only active items
       const activeProducts = productsArray.filter(product => 
         product.status === 'active' || product.status === undefined
       );
@@ -184,7 +185,7 @@ const HomeScreen = () => {
         category.status === 'active' || category.status === undefined
       );
       
-      console.log('Data fetched successfully:', {
+      console.log('✅ Data fetched successfully:', {
         products: activeProducts.length,
         categories: activeCategories.length
       });
@@ -195,34 +196,47 @@ const HomeScreen = () => {
       initialDataFetched.current = true;
       
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('❌ Error fetching data:', error);
       Alert.alert('Error', `Failed to load data: ${error.message}`);
     } finally {
       setLoading(false);
       isFetching.current = false;
     }
-  }, []); // Empty dependency array
+  }, []);
 
-  const fetchFilteredProducts = useCallback(async (search: string = '', category: string | null = null) => {
-    // Don't fetch if already fetching
-    if (isFetching.current) {
-      return;
-    }
+  const fetchFilteredProducts = useCallback(async (search: string = '', categoryId: string | null = null) => {
+    if (isFetching.current) return;
     
     try {
       isFetching.current = true;
-      console.log('Fetching filtered products:', { search, category });
+      console.log('🔍 Fetching filtered products:', { search, categoryId });
       
+      // If filtering locally (category selected), don't fetch from backend
+      if (categoryId && !search) {
+        console.log('🎯 Filtering locally by category:', categoryId);
+        const filtered = products.filter(product => {
+          if (typeof product.category === 'object') {
+            return product.category.id === categoryId;
+          }
+          return product.category === categoryId;
+        });
+        console.log('✅ Local filter result:', filtered.length, 'products');
+        setFilteredProducts(filtered);
+        isFetching.current = false;
+        return;
+      }
+      
+      // For search, fetch from backend
       const timestamp = Date.now();
       let productsUrl = `${API_ENDPOINTS.PRODUCTS}?_t=${timestamp}`;
       
       if (search) {
         productsUrl += `&search=${encodeURIComponent(search)}`;
       }
-      if (category) {
-        productsUrl += `&category=${encodeURIComponent(category)}`;
+      if (categoryId) {
+        productsUrl += `&category=${encodeURIComponent(categoryId)}`;
       }
-
+  
       const response = await fetch(productsUrl);
       
       if (!response.ok) {
@@ -231,7 +245,6 @@ const HomeScreen = () => {
       
       const productsData = await response.json();
       
-      // Extract products from response
       let productsArray: Product[] = [];
       if (productsData.products && Array.isArray(productsData.products)) {
         productsArray = productsData.products;
@@ -239,20 +252,19 @@ const HomeScreen = () => {
         productsArray = productsData;
       }
       
-      // Filter only active items
       const activeProducts = productsArray.filter(product => 
         product.status === 'active' || product.status === undefined
       );
       
-      console.log('Filtered products fetched:', activeProducts.length);
+      console.log('✅ Backend search result:', activeProducts.length, 'products');
       setFilteredProducts(activeProducts);
       
     } catch (error) {
-      console.error('Error fetching filtered products:', error);
+      console.error('❌ Error fetching filtered products:', error);
     } finally {
       isFetching.current = false;
     }
-  }, []); // Empty dependency array
+  }, [products]); // Add products as dependency
 
   const fetchCartCount = useCallback(async () => {
     if (!token) {
@@ -273,11 +285,10 @@ const HomeScreen = () => {
         const items = cartData.items || [];
         setCartCount(items.length);
         
-        // Update cart quantities for products in cart
         const quantities: CartQuantities = {};
         items.forEach((item: any) => {
-          if (item.product && item.product._id) {
-            quantities[item.product._id] = item.quantity;
+          if (item.product && item.product.id) {
+            quantities[item.product.id] = item.quantity;
           }
         });
         setCartQuantities(quantities);
@@ -290,7 +301,7 @@ const HomeScreen = () => {
       setCartCount(0);
       setCartQuantities({});
     }
-  }, [token]); // Only depend on token
+  }, [token]);
 
   const fetchUserAddress = useCallback(async () => {
     if (!token) {
@@ -299,9 +310,6 @@ const HomeScreen = () => {
     }
     
     try {
-      console.log('Fetching user address...');
-      
-      // First try to get address from profile
       const profileResponse = await fetch(`${API_BASE_URL}address/my`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -311,157 +319,32 @@ const HomeScreen = () => {
       
       if (profileResponse.ok) {
         const userData = await profileResponse.json();
-        // console.log('User data received:', userData);
-        
-        // Check for different possible address formats in profile
         let displayAddress = null;
         
-        if (userData.address && typeof userData.address === 'string' && userData.address.trim()) {
-          displayAddress = userData.address;
-        } else if (userData.address && typeof userData.address === 'object') {
-          // If address is an object, construct a string
-          const addr = userData.address;
-          const addressParts = [];
-          
-          if (addr.street) addressParts.push(addr.street);
-          if (addr.city) addressParts.push(addr.city);
-          if (addr.state) addressParts.push(addr.state);
-          if (addr.pincode || addr.zipcode) addressParts.push(addr.pincode || addr.zipcode);
-          
-          if (addressParts.length > 0) {
-            displayAddress = addressParts.join(', ');
-          }
-        } else if (userData.delivery_address) {
-          // Check for delivery_address field
-          const addr = userData.delivery_address;
-          const addressParts = [];
-          
-          if (addr.address) addressParts.push(addr.address);
-          if (addr.city) addressParts.push(addr.city);
-          if (addr.state) addressParts.push(addr.state);
-          if (addr.pincode) addressParts.push(addr.pincode);
-          
-          if (addressParts.length > 0) {
-            displayAddress = addressParts.join(', ');
-          }
-        }
-        
-        // If no address found in profile, try dedicated address endpoints
-        if (!displayAddress) {
-          console.log('No address in profile, trying address endpoints...');
-          
-          const addressEndpoints = [
-            `${API_BASE_URL}address/my`,
-          ];
-          
-          for (const endpoint of addressEndpoints) {
-            try {
-              console.log('Trying address endpoint:', endpoint);
-              const addressResponse = await fetch(endpoint, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-              });
-              
-              if (addressResponse.ok) {
-                const addressData = await addressResponse.json();
-                // console.log('Address data received:', addressData);
-                
-                // Handle different response formats
-                let addresses = [];
-                if (Array.isArray(addressData)) {
-                  addresses = addressData;
-                } else if (addressData.addresses && Array.isArray(addressData.addresses)) {
-                  addresses = addressData.addresses;
-                } else if (addressData.address) {
-                  addresses = [addressData.address];
-                } else if (addressData.delivery_address) {
-                  addresses = [addressData.delivery_address];
-                }
-                
-                // Find default address or use first one
-                const defaultAddress = addresses.find(addr => addr.is_default) || addresses[0];
-                
-                if (defaultAddress) {
-                  const addressParts = [];
-                  // console.log('Processing address object:', defaultAddress);
-                  
-                  if (typeof defaultAddress === 'string') {
-                    displayAddress = defaultAddress;
-                  } else {
-                    // Handle your specific address structure
-                    if (defaultAddress.street) {
-                      addressParts.push(defaultAddress.street);
-                      // console.log('Added street:', defaultAddress.street);
-                    }
-                    if (defaultAddress.landmark && defaultAddress.landmark.trim()) {
-                      addressParts.push(`near ${defaultAddress.landmark}`);
-                      // console.log('Added landmark:', defaultAddress.landmark);
-                    }
-                    if (defaultAddress.city) {
-                      addressParts.push(defaultAddress.city);
-                      // console.log('Added city:', defaultAddress.city);
-                    }
-                    if (defaultAddress.state) {
-                      addressParts.push(defaultAddress.state);
-                      // console.log('Added state:', defaultAddress.state);
-                    }
-                    if (defaultAddress.pincode) {
-                      addressParts.push(defaultAddress.pincode);
-                      // console.log('Added pincode:', defaultAddress.pincode);
-                    }
-                    
-                    // console.log('Address parts array:', addressParts);
-                    
-                    // Fallback to other possible field names
-                    if (addressParts.length === 0) {
-                      // console.log('No parts found, trying fallback fields...');
-                      if (defaultAddress.address) addressParts.push(defaultAddress.address);
-                      if (defaultAddress.zipcode) addressParts.push(defaultAddress.zipcode);
-                    }
-                    
-                    if (addressParts.length > 0) {
-                      displayAddress = addressParts.join(', ');
-                      // console.log('Final joined address:', displayAddress);
-                    } else {
-                      console.log('No address parts found to join');
-                    }
-                  }
-                  
-                  if (displayAddress) {
-                    // console.log('Found address from endpoint:', endpoint);
-                    console.log('Parsed address:', displayAddress);
-                    break;
-                  } else {
-                    console.log('Display address is still null after processing');
-                  }
-                }
-              } else {
-                console.log(`Address endpoint ${endpoint} failed with status:`, addressResponse.status);
-              }
-            } catch (endpointError) {
-              console.log(`Address endpoint ${endpoint} threw error:`, endpointError.message);
-              continue;
+        if (Array.isArray(userData)) {
+          const defaultAddress = userData.find(addr => addr.is_default) || userData[0];
+          if (defaultAddress) {
+            const addressParts = [];
+            if (defaultAddress.street) addressParts.push(defaultAddress.street);
+            if (defaultAddress.city) addressParts.push(defaultAddress.city);
+            if (defaultAddress.state) addressParts.push(defaultAddress.state);
+            if (defaultAddress.pincode) addressParts.push(defaultAddress.pincode);
+            
+            if (addressParts.length > 0) {
+              displayAddress = addressParts.join(', ');
             }
           }
         }
         
-        // Set final address
         if (displayAddress) {
-          // Truncate if too long for display
           if (displayAddress.length > 30) {
             displayAddress = displayAddress.substring(0, 27) + '...';
           }
-          console.log('Setting address to:', displayAddress);
           setUserAddress(displayAddress);
         } else {
-          console.log('No address found, using fallback');
           setUserAddress('Add Address');
         }
-        
       } else {
-        console.log('Failed to fetch profile, status:', profileResponse.status);
         setUserAddress('Add Address');
       }
       
@@ -469,9 +352,8 @@ const HomeScreen = () => {
       console.error('Error fetching user address:', error);
       setUserAddress('Add Address');
     }
-  }, [token]); // Only depend on token
+  }, [token]);
 
-  // New function to handle adding items to cart
   const addToCart = useCallback(async (productId: string) => {
     if (!token) {
       Alert.alert(
@@ -485,8 +367,7 @@ const HomeScreen = () => {
       return;
     }
 
-    // Check if product exists and has stock
-    const product = [...products, ...filteredProducts].find(p => p._id === productId);
+    const product = [...products, ...filteredProducts].find(p => p.id === productId);
     if (!product) {
       Alert.alert('Error', 'Product not found');
       return;
@@ -506,34 +387,26 @@ const HomeScreen = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ productId, quantity: 1 }),
+        body: JSON.stringify({ 
+          productId: productId,
+          quantity: 1 
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Update local cart quantities
         setCartQuantities(prev => ({
           ...prev,
           [productId]: (prev[productId] || 0) + 1
         }));
         
-        // Update cart count
         setCartCount(prev => prev + 1);
-
-        // Show notification
         setShowCartNotification(true);
         setTimeout(() => setShowCartNotification(false), 2000);
       } else {
         if (response.status === 401) {
-          Alert.alert(
-            'Session Expired',
-            'Please login again',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Login', onPress: () => router.push('/auth/login') }
-            ]
-          );
+          Alert.alert('Session Expired', 'Please login again');
         } else {
           Alert.alert('Error', data.message || 'Failed to add to cart');
         }
@@ -546,7 +419,6 @@ const HomeScreen = () => {
     }
   }, [token, products, filteredProducts]);
 
-  // New function to update cart quantity
   const updateCartQuantity = useCallback(async (productId: string, newQuantity: number) => {
     if (!token) {
       Alert.alert('Error', 'Please login to manage cart');
@@ -556,73 +428,66 @@ const HomeScreen = () => {
     setAddingToCart(prev => ({ ...prev, [productId]: true }));
 
     try {
-      if (newQuantity <= 0) {
-        // Remove item from cart - we need to find the cart item ID first
-        const cartResponse = await fetch(API_ENDPOINTS.CART, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        
-        if (cartResponse.ok) {
-          const cartData = await cartResponse.json();
-          const cartItem = cartData.items?.find((item: any) => item.product?._id === productId);
-          
-          if (cartItem) {
-            const response = await fetch(`${API_ENDPOINTS.CART_REMOVE}?item_id=${cartItem._id}`, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            });
+      const cartResponse = await fetch(API_ENDPOINTS.CART, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (!cartResponse.ok) {
+        throw new Error('Failed to fetch cart');
+      }
+      
+      const cartData = await cartResponse.json();
+      const cartItem = cartData.items?.find((item: any) => item.product?.id === productId);
+      
+      if (!cartItem) {
+        console.log('Cart item not found for product:', productId);
+        setAddingToCart(prev => ({ ...prev, [productId]: false }));
+        return;
+      }
 
-            if (response.ok) {
-              setCartQuantities(prev => {
-                const updated = { ...prev };
-                delete updated[productId];
-                return updated;
-              });
-              setCartCount(prev => Math.max(0, prev - (cartQuantities[productId] || 0)));
-            } else {
-              const errorData = await response.json();
-              Alert.alert('Error', errorData.message || 'Failed to remove item');
-            }
-          }
+      if (newQuantity <= 0) {
+        const response = await fetch(`${API_ENDPOINTS.CART_REMOVE}?item_id=${cartItem._id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          setCartQuantities(prev => {
+            const updated = { ...prev };
+            delete updated[productId];
+            return updated;
+          });
+          setCartCount(prev => Math.max(0, prev - (cartQuantities[productId] || 0)));
+        } else {
+          const errorData = await response.json();
+          Alert.alert('Error', errorData.message || 'Failed to remove item');
         }
       } else {
-        // Update quantity - we need to find the cart item ID first
-        const cartResponse = await fetch(API_ENDPOINTS.CART, {
-          headers: { 'Authorization': `Bearer ${token}` },
+        const response = await fetch(API_ENDPOINTS.CART_UPDATE, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ itemId: cartItem._id, quantity: newQuantity }),
         });
-        
-        if (cartResponse.ok) {
-          const cartData = await cartResponse.json();
-          const cartItem = cartData.items?.find((item: any) => item.product?._id === productId);
-          
-          if (cartItem) {
-            const response = await fetch(API_ENDPOINTS.CART_UPDATE, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({ itemId: cartItem._id, quantity: newQuantity }),
-            });
 
-            if (response.ok) {
-              const oldQuantity = cartQuantities[productId] || 0;
-              const quantityDiff = newQuantity - oldQuantity;
-              
-              setCartQuantities(prev => ({
-                ...prev,
-                [productId]: newQuantity
-              }));
-              
-              setCartCount(prev => prev + quantityDiff);
-            } else {
-              const errorData = await response.json();
-              Alert.alert('Error', errorData.message || 'Failed to update quantity');
-            }
-          }
+        if (response.ok) {
+          const oldQuantity = cartQuantities[productId] || 0;
+          const quantityDiff = newQuantity - oldQuantity;
+          
+          setCartQuantities(prev => ({
+            ...prev,
+            [productId]: newQuantity
+          }));
+          
+          setCartCount(prev => prev + quantityDiff);
+        } else {
+          const errorData = await response.json();
+          Alert.alert('Error', errorData.message || 'Failed to update quantity');
         }
       }
     } catch (error) {
@@ -633,24 +498,37 @@ const HomeScreen = () => {
     }
   }, [token, cartQuantities]);
 
-  // Initial data fetch - only once
+  // Debug effect to log data after it's loaded
+  useEffect(() => {
+    if (products.length > 0 && categories.length > 0) {
+      console.log(`\n📊 ========== DATA LOADED SUMMARY ==========`);
+      console.log(`Products: ${products.length}`);
+      console.log(`Categories: ${categories.length}`);
+      console.log(`\n📦 Sample Product:`, JSON.stringify(products[0], null, 2));
+      console.log(`\n📁 Sample Category:`, JSON.stringify(categories[0], null, 2));
+      console.log(`\n🔗 Product-Category Mapping:`);
+      products.forEach(p => {
+        console.log(`  ${p.name} -> Category: ${typeof p.category === 'object' ? p.category.id : p.category}`);
+      });
+      console.log(`========================================\n`);
+    }
+  }, [products, categories]);
+
   useEffect(() => {
     if (!initialDataFetched.current && !isFetching.current) {
-      console.log('Initial data fetch triggered');
+      console.log('🚀 Initial data fetch triggered');
       fetchData();
     }
-  }, []); // Empty dependency array - only run once
+  }, [fetchData]);
 
-  // Auth-related fetches - only when auth state changes
   useEffect(() => {
     if (!authLoading) {
-      console.log('Auth state changed, fetching user data');
+      console.log('🔐 Auth state changed, fetching user data');
       fetchCartCount();
       fetchUserAddress();
     }
-  }, [authLoading, fetchCartCount, fetchUserAddress]); // Stable dependencies
+  }, [authLoading, fetchCartCount, fetchUserAddress]);
 
-  // Focus effect for cart count only
   useFocusEffect(
     useCallback(() => {
       if (token && !authLoading) {
@@ -659,34 +537,26 @@ const HomeScreen = () => {
     }, [token, authLoading, fetchCartCount])
   );
 
-  // Search/filter effect with proper debouncing
   useEffect(() => {
-    if (!initialDataFetched.current) {
-      return; // Don't filter until initial data is loaded
-    }
+    if (!initialDataFetched.current) return;
     
     const handler = setTimeout(() => {
       if (searchQuery.length === 0 || searchQuery.length > 2) {
-        console.log('Search/filter triggered:', { searchQuery, selectedCategory });
+        console.log('🔍 Search/filter triggered:', { searchQuery, selectedCategory });
         fetchFilteredProducts(searchQuery, selectedCategory);
       }
     }, 500);
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchQuery, selectedCategory, fetchFilteredProducts]); // Stable dependencies
+    return () => clearTimeout(handler);
+  }, [searchQuery, selectedCategory, fetchFilteredProducts]);
 
-  // Helper function to extract product ID
   const extractProductIdFromImages = (product: Product): string | null => {
     if (product.images && Array.isArray(product.images) && product.images.length > 0) {
       const firstImage = product.images[0];
       
       if (typeof firstImage === 'object' && firstImage.public_id) {
-        // Extract ID from public_id like "products/product_689f423f42968e9301554db2_image_0"
         const match = firstImage.public_id.match(/product_([a-f0-9]{24})_/);
         if (match) {
-          console.log('Extracted product ID from image:', match[1]);
           return match[1];
         }
       }
@@ -697,7 +567,7 @@ const HomeScreen = () => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    initialDataFetched.current = false; // Reset flag to allow fresh fetch
+    initialDataFetched.current = false;
     await fetchData();
     await fetchCartCount();
     await fetchUserAddress();
@@ -705,29 +575,14 @@ const HomeScreen = () => {
   }, [fetchData, fetchCartCount, fetchUserAddress]);
 
   const retryConnection = useCallback(() => {
-    initialDataFetched.current = false; // Reset flag
+    initialDataFetched.current = false;
     fetchData();
   }, [fetchData]);
 
   const handleProductPress = (product: Product) => {
-    console.log('=== PRODUCT PRESS DEBUG ===');
-    console.log('Product clicked:', product.name);
-    console.log('Product._id:', product._id);
-    console.log('Product.id:', (product as any).id);
+    const productId = product.id;
     
-    // Try to get product ID from various sources
-    let productId = product._id || (product as any).id;
-    
-    // If still no ID, try to extract from image public_id
-    if (!productId || productId === 'undefined') {
-      productId = extractProductIdFromImages(product);
-      console.log('Extracted ID from images:', productId);
-    }
-    
-    console.log('Final product ID for navigation:', productId);
-    console.log('=== END PRODUCT PRESS DEBUG ===');
-    
-    if (!productId || productId === 'undefined') {
+    if (!productId) {
       Alert.alert('Error', 'Product ID not found');
       return;
     }
@@ -736,11 +591,12 @@ const HomeScreen = () => {
   };
 
   const handleCategoryPress = useCallback((categoryId: string | null) => {
-    console.log('Category pressed:', categoryId);
+    console.log('📂 Category pressed:', categoryId);
     setSelectedCategory(categoryId);
   }, []);
 
   const handleViewAllPress = useCallback((categoryId: string) => {
+    console.log('👀 View all pressed for category:', categoryId);
     setSelectedCategory(categoryId);
   }, []);
 
@@ -763,7 +619,6 @@ const HomeScreen = () => {
     router.push('/(tabs)/explore');
   }, [authLoading, token]);
 
-  // Enhanced function to get image URL from various formats
   const getImageUrl = useCallback((images: (string | ProductImage)[]): string => {
     if (!images || !Array.isArray(images) || images.length === 0) {
       return 'https://via.placeholder.com/150?text=No+Image';
@@ -785,7 +640,6 @@ const HomeScreen = () => {
     return 'https://via.placeholder.com/150?text=No+Image';
   }, []);
 
-  // Enhanced function to get category icon URL
   const getCategoryIconUrl = useCallback((category: Category): string => {
     const iconSource = category.icon || category.image;
     
@@ -800,9 +654,8 @@ const HomeScreen = () => {
     return `${IMAGE_BASE_URL}${iconSource}`;
   }, []);
 
-  // New component to render add to cart button
   const renderCartButton = useCallback((product: Product) => {
-    const productId = product._id;
+    const productId = product.id;
     const quantity = cartQuantities[productId] || 0;
     const isLoading = addingToCart[productId] || false;
     const isOutOfStock = product.stock === 0;
@@ -905,13 +758,13 @@ const HomeScreen = () => {
         
         {categories.map((cat, index) => {
           const iconUrl = getCategoryIconUrl(cat);
-          const categoryKey = cat._id || `category-${cat.name}-${index}`;
-          const isSelected = selectedCategory === cat._id;
+          const categoryKey = cat.id || `category-${cat.name}-${index}`;
+          const isSelected = selectedCategory === cat.id;
           
           return (
             <TouchableOpacity 
               key={categoryKey}
-              onPress={() => handleCategoryPress(cat._id)} 
+              onPress={() => handleCategoryPress(cat.id)} 
               style={{ alignItems: 'center', marginHorizontal: 8 }}
             >
               <View style={[styles.categoryIconContainer, isSelected && styles.categoryUberSelected]}>
@@ -929,10 +782,9 @@ const HomeScreen = () => {
           );
         })}
         
-        {/* Add Request Product button in the category section */}
         <TouchableOpacity 
           key="request-product"
-          onPress={() => requestFormRef.current?.openForm()} // CHANGED THIS LINE
+          onPress={() => requestFormRef.current?.openForm()}
           style={{ alignItems: 'center', marginHorizontal: 8 }}
         >
           <View style={styles.requestProductIconContainer}>
@@ -976,7 +828,6 @@ const HomeScreen = () => {
             <Text style={[styles.productTilePrice, isOutOfStock && styles.dimmedPrice]}>₹{item.price}</Text>
           </View>
         </TouchableOpacity>
-        {/* Add to cart button */}
         <View style={styles.cartButtonContainer}>
           {renderCartButton(item)}
         </View>
@@ -1016,7 +867,6 @@ const HomeScreen = () => {
             <Text style={[styles.productCardPrice, isOutOfStock && styles.dimmedPrice]}>₹{item.price}</Text>
           </View>
         </TouchableOpacity>
-        {/* Add to cart button */}
         <View style={styles.cartButtonContainer}>
           {renderCartButton(item)}
         </View>
@@ -1025,24 +875,61 @@ const HomeScreen = () => {
   }, [getImageUrl, handleProductPress, renderCartButton]);
 
   const renderCategorySection = useCallback(({ item: category, index }: { item: Category; index: number }) => {
-    const categoryProducts = products.filter(product => product.category?._id === category._id);
+    console.log(`\n========================================`);
+    console.log(`🔍 FILTERING CATEGORY: ${category.name}`);
+    console.log(`Category ID: ${category.id}`);
+    console.log(`Total products available: ${products.length}`);
+    
+    const categoryProducts = products.filter(product => {
+      console.log(`\n  📦 Product: ${product.name}`);
+      console.log(`    Product.category:`, product.category);
+      console.log(`    typeof:`, typeof product.category);
+      
+      if (!product.category) {
+        console.log(`    ❌ No category`);
+        return false;
+      }
+      
+      if (typeof product.category === 'object') {
+        console.log(`    Product category.id: "${product.category.id}"`);
+        console.log(`    Category id: "${category.id}"`);
+        const match = product.category.id === category.id;
+        console.log(`    Match: ${match}`);
+        return match;
+      }
+      
+      if (typeof product.category === 'string') {
+        console.log(`    Product category (string): "${product.category}"`);
+        console.log(`    Category id: "${category.id}"`);
+        const match = product.category === category.id;
+        console.log(`    Match: ${match}`);
+        return match;
+      }
+      
+      console.log(`    ❌ Unexpected type`);
+      return false;
+    });
 
-    if (categoryProducts.length === 0) return null;
+    console.log(`\n✅ RESULT: ${categoryProducts.length} products for "${category.name}"`);
+    console.log(`========================================\n`);
+
+    if (categoryProducts.length === 0) {
+      console.log(`⚠️ No products found, skipping category: ${category.name}`);
+      return null;
+    }
     
     return (
       <View style={styles.categorySection}>
         <View style={styles.categorySectionHeader}>
-          <Text style={styles.categorySectionTitle}>
-            {category.name}
-          </Text>
-          <TouchableOpacity onPress={() => handleViewAllPress(category._id)}>
-            <Text style={styles.viewAllText}>View All</Text>
+          <Text style={styles.categorySectionTitle}>{category.name}</Text>
+          <TouchableOpacity onPress={() => handleViewAllPress(category.id)}>
+            <Text style={styles.viewAllText}>View All ({categoryProducts.length})</Text>
           </TouchableOpacity>
         </View>
         <FlatList
           data={categoryProducts}
           renderItem={renderProductCard}
-          keyExtractor={(item, idx) => `category-${category._id}-product-${item._id || idx}-${idx}`}
+          keyExtractor={(item, idx) => `cat-${category.id}-prod-${item.id}-${idx}`}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryProductList}
@@ -1050,20 +937,13 @@ const HomeScreen = () => {
           removeClippedSubviews={false}
           initialNumToRender={3}
           maxToRenderPerBatch={5}
-          getItemLayout={(data, index) => ({
-            length: 150,
-            offset: 150 * index,
-            index,
-          })}
         />
       </View>
     );
   }, [products, renderProductCard, handleViewAllPress]);
 
-  // New function to render the request product section with proper callback
   const handleRequestSubmitted = useCallback(() => {
     Alert.alert('Thank you!', 'Your product request has been submitted.');
-    // setShowRequestModal(false);
   }, []);
 
   if (loading) {
@@ -1076,7 +956,6 @@ const HomeScreen = () => {
     );
   }
 
-  // Determine which view mode we're in
   const isGridMode = searchQuery.trim() || selectedCategory;
 
   return (
@@ -1090,14 +969,13 @@ const HomeScreen = () => {
           key="products-grid-view"
           data={filteredProducts}
           renderItem={renderProductTile}
-          keyExtractor={(item, index) => `grid-product-${item._id || extractProductIdFromImages(item) || index}-${index}`}
+          keyExtractor={(item, index) => `grid-product-${item.id || index}-${index}`}
           numColumns={2}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', marginTop: 32 }}>
               <Text style={{ color: '#888', fontSize: 16 }}>No products found.</Text>
             </View>
           }
-
           ListFooterComponent={() => (
             <View>
               <View style={styles.borderlessRequestSection}>
@@ -1106,11 +984,11 @@ const HomeScreen = () => {
                   onRequestSubmitted={handleRequestSubmitted} 
                 />
               </View>
-              <View style={{ height: 100 }} />
+              <View style={{ height: 180 }} />
             </View>
           )}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 180 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -1123,19 +1001,13 @@ const HomeScreen = () => {
           initialNumToRender={6}
           maxToRenderPerBatch={8}
           windowSize={10}
-          getItemLayout={(data, index) => ({
-            length: 240,
-            offset: 240 * Math.floor(index / 2),
-            index,
-          })}
         />
       ) : (
         <FlatList
           key="categories-browse-view"
           data={categories}
           renderItem={renderCategorySection}
-          keyExtractor={(item, index) => `category-section-${item._id}-${index}`}
-
+          keyExtractor={(item, index) => `category-section-${item.id}-${index}`}
           ListFooterComponent={() => (
             <View>
               <View style={styles.borderlessRequestSection}>
@@ -1144,7 +1016,7 @@ const HomeScreen = () => {
                   onRequestSubmitted={handleRequestSubmitted} 
                 />
               </View>
-              <View style={{ height: 100 }} />
+              <View style={{ height: 180 }} />
             </View>
           )}
           ListEmptyComponent={
@@ -1164,7 +1036,7 @@ const HomeScreen = () => {
               tintColor="#007AFF"
             />
           }
-          contentContainerStyle={{ paddingTop: 16 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 180 }}
           removeClippedSubviews={false}
           initialNumToRender={5}
           maxToRenderPerBatch={5}
@@ -1249,13 +1121,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
   },
-  loadingText: {
-    fontSize: 18,
-    color: '#333',
-    marginBottom: 24,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
   retryButton: {
     paddingHorizontal: 32,
     paddingVertical: 12,
@@ -1325,7 +1190,6 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: 'bold',
   },
-  // New styles for request product button in categories
   requestProductIconContainer: {
     width: 48,
     height: 48,
@@ -1367,7 +1231,7 @@ const styles = StyleSheet.create({
   },
   productTileContent: {
     padding: 12,
-    paddingBottom: 50, // Make room for cart button
+    paddingBottom: 50,
   },
   productTileName: {
     fontSize: 14,
@@ -1408,7 +1272,7 @@ const styles = StyleSheet.create({
   },
   productCardContent: {
     padding: 12,
-    paddingBottom: 50, // Make room for cart button
+    paddingBottom: 50,
   },
   productCardName: {
     fontSize: 14,
@@ -1474,7 +1338,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  // New styles for cart buttons
   cartButtonContainer: {
     position: 'absolute',
     bottom: 8,
@@ -1544,12 +1407,11 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.6,
   },
-  // New styles for out of stock products
   outOfStockTile: {
     opacity: 0.6,
   },
   disabledTouchable: {
-    opacity: 1, // Keep touchable at full opacity since parent handles dimming
+    opacity: 1,
   },
   imageContainer: {
     position: 'relative',
@@ -1587,37 +1449,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     color: '#999',
   },
-  // New styles for borderless request section
   borderlessRequestSection: {
     marginHorizontal: 16,
     marginTop: 20,
-  },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
   },
 });
 

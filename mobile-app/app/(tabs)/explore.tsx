@@ -28,7 +28,7 @@ interface ProductImage {
 interface CartItem {
   _id: string;
   product: {
-    _id: string;
+    id: string;
     name: string;
     price: number;
     images: (string | ProductImage)[];
@@ -379,13 +379,13 @@ const CartScreen = () => {
           <FlatList
             data={cartItems}
             renderItem={renderCartItem}
-            keyExtractor={(item, index) => `cart-item-${item._id}-${index}`} // ✅ Fixed: More specific key
+            keyExtractor={(item, index) => `cart-item-${item._id}-${index}`}
             style={styles.cartList}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl refreshing={updating} onRefresh={fetchCart} />
             }
-            // ✅ Add these props to prevent key conflicts
+            
             removeClippedSubviews={false}
             maxToRenderPerBatch={10}
             windowSize={10}

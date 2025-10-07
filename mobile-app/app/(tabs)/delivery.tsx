@@ -388,7 +388,7 @@ export default function DeliveryScreen() {
           style={styles.acceptButton}
           onPress={(e) => {
             e.stopPropagation();
-            handleAcceptOrder(item._id);
+            handleAcceptOrder(item.id);
           }}
           disabled={actionLoading}
         >
@@ -564,7 +564,7 @@ export default function DeliveryScreen() {
                 <Text style={styles.sectionTitle}>Order Information</Text>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Order ID:</Text>
-                  <Text style={styles.detailValue}>#{selectedOrder._id.toUpperCase()}</Text>
+                  <Text style={styles.detailValue}>#{selectedOrder.id.toUpperCase()}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Status:</Text>
