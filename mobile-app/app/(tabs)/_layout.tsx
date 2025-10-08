@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useSegments, usePathname } from 'expo-router';
 import { Platform, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { HapticTab } from '@/components/HapticTab';
@@ -8,10 +8,19 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import AuthWrapper from '@/components/AuthWrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrderStatusBanner } from '@/components/OrderStatusBanner';
+import { useEffect } from 'react';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { user, loading } = useAuth();
+  const pathname = usePathname();
+  const segments = useSegments();
+
+  // ✅ Debug logging
+  useEffect(() => {
+    console.log('🔍 Layout pathname:', pathname);
+    console.log('🔍 Layout segments:', segments);
+  }, [pathname, segments]);
 
   if (loading) {
     return (
@@ -30,6 +39,15 @@ export default function TabLayout() {
   }
 
   const isPartner = user.role === 'delivery_partner';
+  
+  // ✅ Better detection for home screen using segments
+  const isHomeScreen = segments[segments.length - 1] === 'index' || 
+                       segments[segments.length - 1] === undefined ||
+                       pathname === '/(tabs)' || 
+                       pathname === '/(tabs)/' ||
+                       pathname === '/';
+  
+  console.log('🔍 Is Home Screen:', isHomeScreen);
 
   return (
     <AuthWrapper>
@@ -78,7 +96,8 @@ export default function TabLayout() {
           />
         </Tabs>
         
-        <OrderStatusBanner />
+        {/* ✅ Only show banner on home screen */}
+        {isHomeScreen && <OrderStatusBanner />}
       </View>
     </AuthWrapper>
   );

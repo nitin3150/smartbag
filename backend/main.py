@@ -67,7 +67,7 @@ ws_app = create_admin_app()
 app.state.customer_app = customer_app
 app.state.ws_app = ws_app
 
-app.mount("/api",customer_app)
+# app.mount("/api",customer_app)
 app.mount("/admin",ws_app)
 
 ENV = os.getenv('ENVIRONMENT')

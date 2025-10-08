@@ -16,8 +16,8 @@
       "**/*"
     ],
     "extra": {
-      "EXPO_PUBLIC_API_URL": "http://10.0.0.88:8000/api/",
-      "EXPO_PUBLIC_API_URL_dev": "https://smartbag-backend-oqlt.onrender.com/api",
+      "EXPO_PUBLIC_API_URL_DEV": "http://10.0.0.88:8000/api/",
+      "EXPO_PUBLIC_API_URL": "https://backend-c1jr.onrender.com/api",
       "EXPO_PUBLIC_OLA_KRUTRIM_API_KEY": "dzfpTC3yjmbi4eQLsDzBwBdGyYYdZXN80BFR73kQ",
       "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "com.googleusercontent.apps.1029983278193-mgl5t7mtqajk2a3vocs6qchbir317o9q",
       "eas": {

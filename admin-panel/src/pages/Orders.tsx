@@ -45,7 +45,8 @@ import {
   Truck, 
   Clock, 
   CheckCircle, 
-  Package, 
+  Package,
+  Download, 
   Loader2, 
   User, 
   Calendar, 
@@ -117,7 +118,8 @@ export default function Orders() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [orderStatusHistory, setOrderStatusHistory] = useState<OrderStatusHistory[]>([]);
-  
+  const [isDownloading, setIsDownloading] = useState(false);
+
   // Enhanced pagination and filtering
   const [pagination, setPagination] = useState<PaginationInfo>({
     current_page: 1,
@@ -330,6 +332,98 @@ export default function Orders() {
       type: 'get_orders',
       filters: backendFilters
     });
+  };
+
+  const downloadCSV = () => {
+    setIsDownloading(true);
+    
+    try {
+      if (orders.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No orders available to download",
+          variant: "destructive",
+        });
+        setIsDownloading(false);
+        return;
+      }
+  
+      // CSV Headers
+      const headers = [
+        "Order ID",
+        "Customer Name",
+        "Customer Email",
+        "Customer Phone",
+        "Status",
+        "Total Amount",
+        "Payment Method",
+        "Payment Status",
+        "Delivery Partner",
+        "Created Date",
+        "Created Time",
+        "Delivery Address",
+        "City",
+        "State",
+        "Pincode"
+      ];
+  
+      // CSV Rows
+      const rows = orders.map(order => [
+        order.id || '',
+        order.user_name || '',
+        order.user_email || '',
+        order.user_phone || '',
+        order.status || order.order_status || '',
+        order.total || order.total_amount || '0',
+        order.payment_method || '',
+        order.payment_status || '',
+        order.delivery_partner_name || 'Not assigned',
+        order.created_at ? format(parseISO(order.created_at), 'yyyy-MM-dd') : '',
+        order.created_at ? format(parseISO(order.created_at), 'HH:mm:ss') : '',
+        order.delivery_address?.address || '',
+        order.delivery_address?.city || '',
+        order.delivery_address?.state || '',
+        order.delivery_address?.pincode || ''
+      ]);
+  
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+  
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      // Create filename with current date and filters
+      const dateStr = format(new Date(), 'yyyy-MM-dd_HH-mm');
+      const statusStr = filters.status !== 'all' ? `_${filters.status}` : '';
+      const filename = `orders${statusStr}_${dateStr}.csv`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+  
+      toast({
+        title: "Download Complete",
+        description: `Downloaded ${orders.length} orders`,
+      });
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download orders CSV",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   // Handle pagination
@@ -846,6 +940,30 @@ export default function Orders() {
               </Popover>
             </div>
 
+            {/* <div className="flex items-center space-x-2">
+              <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(parseInt(value))}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {pageSizeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading || isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div> */}
             <div className="flex items-center space-x-2">
               <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(parseInt(value))}>
                 <SelectTrigger className="w-[140px]">
@@ -859,6 +977,26 @@ export default function Orders() {
                   ))}
                 </SelectContent>
               </Select>
+
+              {/* ✅ NEW: Download CSV Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadCSV}
+                disabled={isLoading || isDownloading || orders.length === 0}
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download CSV
+                  </>
+                )}
+              </Button>
 
               <Button
                 variant="outline"
